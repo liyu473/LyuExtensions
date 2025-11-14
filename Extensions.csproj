@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<!-- NuGet 包信息 -->
+		<PackageId>LyuExtensions</PackageId>
+		<Version>1.0.3</Version>
+		<Authors>liyu</Authors>
+		<Description>useful extensions</Description>
+		<PackageTags>tools;helper;extensions</PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+
+		<!-- 打包时自动生成 nupkg -->
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="docs\README.md" Pack="true" PackagePath="">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+</Project>
