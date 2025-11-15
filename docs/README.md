@@ -66,15 +66,15 @@ Console.WriteLine(cloned.Name);   // 输出: 李四
 
 使用 JSON 序列化实现的深拷贝
 
+**性能对比：**
 
+首次调用性能差异：
 
-性能差异（首次）：
+![首次克隆性能对比](images/clone-performance-first.png)
 
-![image-20251115163329639](C:\Users\lizhenyu\AppData\Roaming\Typora\typora-user-images\image-20251115163329639.png)
+后续调用性能：
 
-之后：
-
-![image-20251115163404576](C:\Users\lizhenyu\AppData\Roaming\Typora\typora-user-images\image-20251115163404576.png)
+![后续克隆性能对比](images/clone-performance-after.png)
 
 ---
 
