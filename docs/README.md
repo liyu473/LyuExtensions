@@ -1,7 +1,6 @@
 # LyuExtensions
 
 [![NuGet](https://img.shields.io/nuget/v/LyuExtensions.svg)](https://www.nuget.org/packages/LyuExtensions/)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/LyuExtensions.svg)](https://www.nuget.org/packages/LyuExtensions/)
 [![GitHub](https://img.shields.io/github/license/liyu473/LyuExtensions)](https://github.com/liyu473/LyuExtensions)
 
 一个聚焦日常开发场景的 .NET 扩展方法集，助力快速构建业务代码。

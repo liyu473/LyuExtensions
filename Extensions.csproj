@@ -7,14 +7,19 @@
 
 		<!-- NuGet 包信息 -->
 		<PackageId>LyuExtensions</PackageId>
-		<Version>1.1.2</Version>
+		<Version>1.1.3</Version>
 		<Authors>Liyu</Authors>
 		<Description>一些简单的拓展方法集合</Description>
 		<PackageTags>tools;helper;extensions</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 
-		<!-- 打包时自动生成 nupkg -->
+		<!-- GitHub 仓库信息 -->
+		<RepositoryUrl>https://github.com/liyu473/LyuExtensions</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageProjectUrl>https://github.com/liyu473/LyuExtensions</PackageProjectUrl>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+		<!-- 打包时自动生成 nupkg -->
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 
