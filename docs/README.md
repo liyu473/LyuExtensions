@@ -33,7 +33,7 @@ dotnet add package LyuExtensions
 
 提供两种深拷贝方式：基于 MemoryPack 的二进制高性能克隆和基于 JSON 的通用克隆。
 
-实测：对于普通的类 ZClone 比JClone快了近10倍
+实测：对于普通的类 ZClone 比JClone快了10倍以上
 
 ### 命名空间
 
