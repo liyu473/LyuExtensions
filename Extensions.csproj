@@ -7,13 +7,14 @@
 
 		<!-- NuGet 包信息 -->
 		<PackageId>LyuExtensions</PackageId>
-		<Version>1.1.0</Version>
+		<Version>1.1.2</Version>
 		<Authors>Liyu</Authors>
 		<Description>一些简单的拓展方法集合</Description>
 		<PackageTags>tools;helper;extensions</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 
 		<!-- 打包时自动生成 nupkg -->
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 
