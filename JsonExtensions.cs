@@ -1,4 +1,6 @@
-﻿using System.Text.Encodings.Web;
+﻿using MemoryPack;
+using System;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
@@ -40,13 +42,4 @@ public static class JsonExtensions
     {
         return JsonSerializer.Serialize(value, options ?? DefaultOptions);
     }
-
-    /// <summary>
-    /// 依赖 JSON 序列化实现对象的深拷贝。
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="obj"></param>
-    /// <returns></returns>
-    public static T DeepClone<T>(this T obj)
-    => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(obj))!;
 }

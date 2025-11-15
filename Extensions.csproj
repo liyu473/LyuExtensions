@@ -8,8 +8,8 @@
 		<!-- NuGet 包信息 -->
 		<PackageId>LyuExtensions</PackageId>
 		<Version>1.0.3</Version>
-		<Authors>liyu</Authors>
-		<Description>useful extensions</Description>
+		<Authors>Liyu</Authors>
+		<Description>一些简单的拓展方法集合</Description>
 		<PackageTags>tools;helper;extensions</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 
@@ -18,8 +18,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Content Include="docs\README.md" Pack="true" PackagePath="">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
+		<Content Include="docs\README.md" Pack="true" PackagePath="" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="MemoryPack" Version="1.21.4" />
 	</ItemGroup>
 </Project>
