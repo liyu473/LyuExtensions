@@ -2,12 +2,6 @@
 
 一个聚焦日常开发场景的 .NET 扩展方法集，助力快速构建业务代码。
 
-## 安装
-
-```bash
-dotnet add package LyuExtensions
-```
-
 ## 扩展方法列表
 
 - [HttpClient 扩展](#httpclient-扩展) - 简化 HTTP 请求
@@ -47,7 +41,7 @@ using Extensions;
 
 使用 MemoryPack 二进制序列化实现极致性能的深拷贝。
 
-**注意：** 需要在类上添加 `[MemoryPackable]` 特性。
+**注意：** 需要在类上添加 `[MemoryPackable]` 特性并标注分部。
 
 **示例：**
 ```csharp
@@ -70,23 +64,17 @@ Console.WriteLine(cloned.Name);   // 输出: 李四
 
 #### JClone
 
-使用 JSON 序列化实现的深拷贝，适用于所有可序列化的对象。
+使用 JSON 序列化实现的深拷贝
 
-**示例：**
-```csharp
-public class Product
-{
-    public string Name { get; set; }
-    public decimal Price { get; set; }
-}
 
-var original = new Product { Name = "笔记本", Price = 5999 };
-var cloned = original.JClone();
 
-cloned.Price = 4999;
-Console.WriteLine(original.Price); // 输出: 5999
-Console.WriteLine(cloned.Price);   // 输出: 4999
-```
+性能差异（首次）：
+
+![image-20251115163329639](C:\Users\lizhenyu\AppData\Roaming\Typora\typora-user-images\image-20251115163329639.png)
+
+之后：
+
+![image-20251115163404576](C:\Users\lizhenyu\AppData\Roaming\Typora\typora-user-images\image-20251115163404576.png)
 
 ---
 
@@ -260,19 +248,22 @@ using Extensions;
 - **编码器**：支持完整 Unicode（包括中文）
 - **忽略条件**：不忽略任何属性
 
-### 方法
+### 方法概览
 
-#### ToJson
+- **序列化**：`ToJson`
+- **反序列化**：`FromJson`、`TryFromJson`
+- **JSON 片段读取**：`GetJsonFragment`、`GetJsonValue`、`HasJsonPath`
 
-将对象序列化为 JSON 字符串。
+### 序列化
 
-**示例：**
+#### ToJson - 标准序列化
+
+将对象序列化为格式化的 JSON 字符串（带缩进）。
+
 ```csharp
 public record Person(string Name, int Age, string City);
 
 var person = new Person("张三", 25, "北京");
-
-// 使用默认配置
 string json = person.ToJson();
 Console.WriteLine(json);
 /* 输出:
@@ -282,14 +273,193 @@ Console.WriteLine(json);
   "city": "北京"
 }
 */
+```
 
-// 使用自定义配置
-var customOptions = new JsonSerializerOptions
+### 反序列化
+
+#### FromJson - 标准反序列化
+
+将 JSON 字符串反序列化为对象。
+
+```csharp
+string json = """{"name":"张三","age":25,"city":"北京"}""";
+var person = json.FromJson<Person>();
+Console.WriteLine(person.Name); // 输出: 张三
+```
+
+#### TryFromJson - 安全反序列化
+
+尝试反序列化，失败时不抛出异常。
+
+```csharp
+string json = """{"name":"张三","age":25}""";
+
+if (json.TryFromJson<Person>(out var person))
 {
-    WriteIndented = false
-};
-string compactJson = person.ToJson(customOptions);
-Console.WriteLine(compactJson); // 输出: {"name":"张三","age":25,"city":"北京"}
+    Console.WriteLine($"成功: {person.Name}");
+}
+else
+{
+    Console.WriteLine("反序列化失败");
+}
+
+// 无效的 JSON
+string invalidJson = "{invalid json}";
+if (invalidJson.TryFromJson<Person>(out var result))
+{
+    // 不会执行
+}
+else
+{
+    Console.WriteLine("JSON 无效"); // 输出: JSON 无效
+}
+```
+
+### JSON 片段读取
+
+#### GetJsonFragment - 提取JSON片段
+
+从 JSON 字符串中提取指定路径的片段。
+
+**路径语法：**
+- 使用点号分隔属性：`"user.name"`
+- 使用中括号访问数组：`"items[0]"`
+- 组合使用：`"user.address.city"` 或 `"orders[0].total"`
+
+```csharp
+string json = """
+{
+  "user": {
+    "name": "张三",
+    "age": 25,
+    "address": {
+      "city": "北京",
+      "street": "长安街"
+    }
+  },
+  "orders": [
+    {"id": 1, "total": 299.9},
+    {"id": 2, "total": 499.5}
+  ]
+}
+""";
+
+// 提取嵌套属性
+var city = json.GetJsonFragment("user.address.city");
+Console.WriteLine(city); // 输出: "北京"
+
+// 提取数组元素
+var firstOrder = json.GetJsonFragment("orders[0]");
+Console.WriteLine(firstOrder); // 输出: {"id": 1, "total": 299.9}
+
+// 提取数组元素的属性
+var total = json.GetJsonFragment("orders[1].total");
+Console.WriteLine(total); // 输出: 499.5
+```
+
+#### GetJsonValue - 提取并反序列化
+
+提取 JSON 片段并直接反序列化为指定类型。
+
+```csharp
+public record Address(string City, string Street);
+public record Order(int Id, double Total);
+
+// 提取并反序列化对象
+var address = json.GetJsonValue<Address>("user.address");
+Console.WriteLine(address.City); // 输出: 北京
+
+// 提取并反序列化数组元素
+var order = json.GetJsonValue<Order>("orders[0]");
+Console.WriteLine(order.Total); // 输出: 299.9
+
+// 提取基本类型
+var age = json.GetJsonValue<int>("user.age");
+Console.WriteLine(age); // 输出: 25
+```
+
+#### HasJsonPath - 检查路径是否存在
+
+验证 JSON 中是否存在指定路径。
+
+```csharp
+if (json.HasJsonPath("user.address.city"))
+{
+    Console.WriteLine("城市信息存在");
+}
+
+if (!json.HasJsonPath("user.phone"))
+{
+    Console.WriteLine("电话信息不存在");
+}
+
+// 检查数组索引
+if (json.HasJsonPath("orders[0]"))
+{
+    Console.WriteLine("第一个订单存在");
+}
+
+if (!json.HasJsonPath("orders[10]"))
+{
+    Console.WriteLine("第11个订单不存在");
+}
+```
+
+### 实际应用示例
+
+```csharp
+// API 响应处理
+string apiResponse = """
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "users": [
+      {"id": 1, "name": "张三", "email": "zhang@example.com"},
+      {"id": 2, "name": "李四", "email": "li@example.com"}
+    ],
+    "total": 2
+  }
+}
+""";
+
+// 检查响应是否成功
+var code = apiResponse.GetJsonValue<int>("code");
+if (code == 200)
+{
+    // 提取用户列表
+    var users = apiResponse.GetJsonValue<List<User>>("data.users");
+    
+    // 或者只提取第一个用户的邮箱
+    var firstEmail = apiResponse.GetJsonValue<string>("data.users[0].email");
+    Console.WriteLine(firstEmail); // 输出: zhang@example.com
+    
+    // 提取总数
+    var total = apiResponse.GetJsonValue<int>("data.total");
+    Console.WriteLine($"共 {total} 个用户");
+}
+
+// 配置文件读取
+string configJson = """
+{
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "credentials": {
+      "username": "admin",
+      "password": "secret"
+    }
+  }
+}
+""";
+
+// 安全地提取配置值
+if (configJson.HasJsonPath("database.credentials.username"))
+{
+    var username = configJson.GetJsonValue<string>("database.credentials.username");
+    var port = configJson.GetJsonValue<int>("database.port");
+    Console.WriteLine($"连接到 {username}@localhost:{port}");
+}
 ```
 
 ---
@@ -298,36 +468,11 @@ Console.WriteLine(compactJson); // 输出: {"name":"张三","age":25,"city":"北
 
 提供对象属性复制功能，特别适用于 WPF MVVM 绑定场景。
 
-### 命名空间
-
-```csharp
-using Extensions;
-```
-
 ### 方法
 
 #### UpdatePropertiesFrom
 
 基础属性复制，将源对象的可读写属性复制到目标对象。
-
-**示例：**
-```csharp
-public class User
-{
-    public string Name { get; set; }
-    public int Age { get; set; }
-    public string Email { get; set; }
-}
-
-var source = new User { Name = "张三", Age = 25, Email = "zhang@example.com" };
-var target = new User { Name = "李四", Age = 30, Email = "li@example.com" };
-
-target.UpdatePropertiesFrom(source);
-
-Console.WriteLine(target.Name);  // 输出: 张三
-Console.WriteLine(target.Age);   // 输出: 25
-Console.WriteLine(target.Email); // 输出: zhang@example.com
-```
 
 #### UpdatePropertiesHighQualityFrom
 
@@ -347,6 +492,7 @@ for (int i = 0; i < 10000; i++)
 高性能属性复制，特殊处理 `ObservableCollection<T>` 和 `BindingList<T>`。
 
 **特性：**
+
 - 对于集合类型，同步元素而非替换整个集合
 - 保持 WPF/MVVM 的数据绑定关系
 
@@ -388,12 +534,6 @@ Console.WriteLine(target.Title); // 输出: 新标题
 ## 字符串扩展
 
 提供字符串判空扩展方法。
-
-### 命名空间
-
-```csharp
-using Extensions;
-```
 
 ### 方法
 
