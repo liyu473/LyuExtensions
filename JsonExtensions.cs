@@ -53,6 +53,20 @@ public static class JsonExtensions
     }
 
     /// <summary>
+    /// 从 JSON 字符串反序列化为指定类型，支持传入自定义选项并在 <paramref name="options"/> 为空时回退到默认配置。
+    /// </summary>
+    /// <typeparam name="T">目标类型。</typeparam>
+    /// <param name="json">JSON 字符串。</param>
+    /// <param name="options">自定义反序列化选项，如果为 <c>null</c> 则使用默认配置。</param>
+    /// <returns>反序列化后的对象，如果输入为空或反序列化失败则返回 <c>default</c>。</returns>
+    public static T? FromJson<T>(this string json, JsonSerializerOptions? options)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return default;
+        return JsonSerializer.Deserialize<T>(json, options ?? DefaultOptions);
+    }
+
+    /// <summary>
     /// 安全地尝试从 JSON 反序列化，失败时不抛异常。
     /// </summary>
     public static bool TryFromJson<T>(this string json, [NotNullWhen(true)] out T? result)
