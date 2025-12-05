@@ -85,10 +85,9 @@ public static class ObjectExtension
 
     private static class PropertyCache<T>
     {
-        public static readonly PropertyInfo[] WritableProperties = typeof(T)
+        public static readonly PropertyInfo[] WritableProperties = [.. typeof(T)
             .GetProperties()
-            .Where(p => p.CanRead && p.CanWrite)
-            .ToArray();
+            .Where(p => p.CanRead && p.CanWrite)];
     }
 
     private static class PropertyCopier<T>
