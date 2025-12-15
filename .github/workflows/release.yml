@@ -41,7 +41,7 @@ jobs:
 
       - name: Push Extensions to NuGet
         if: ${{ !inputs.dry_run }}
-        run: dotnet nuget push ./nupkgs/Extensions.*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push ./nupkgs/LyuExtensions.*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
