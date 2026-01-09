@@ -61,6 +61,98 @@ public static class ObjectExtension
     }
 
     /// <summary>
+    /// 高性能复制：利用表达式树缓存，将 <paramref name="source"/> 的属性快速应用到 <paramref name="target"/>，
+    /// 同时排除指定的属性。
+    /// </summary>
+    /// <typeparam name="T">引用类型的对象。</typeparam>
+    /// <param name="target">复制目标实例，不能为空。</param>
+    /// <param name="source">提供属性值的实例，不能为空。</param>
+    /// <param name="excludeProperties">要排除的属性名称集合。</param>
+    /// <exception cref="ArgumentNullException">
+    /// 当 <paramref name="target"/> 或 <paramref name="source"/> 为 <c>null</c> 时抛出。
+    /// </exception>
+    /// <remarks>
+    /// 性能说明：此方法使用 HashSet 缓存排除属性组合，首次调用特定排除组合时会编译表达式树（约 0.1-1ms），
+    /// 后续相同排除组合的调用性能与无过滤版本相当。频繁使用不同排除组合会增加内存占用。
+    /// </remarks>
+    public static void UpdatePropertiesHighQualityFrom<T>(this T target, T source, params string[] excludeProperties)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(source);
+
+        if (ReferenceEquals(target, source))
+        {
+            return;
+        }
+
+        if (excludeProperties == null || excludeProperties.Length == 0)
+        {
+            PropertyCopier<T>.CopyAction(target, source);
+            return;
+        }
+
+        var excludeSet = new HashSet<string>(excludeProperties, StringComparer.Ordinal);
+        PropertyCopierWithExclusion<T>.GetCopyAction(excludeSet)(target, source);
+    }
+
+    /// <summary>
+    /// 高性能复制：利用表达式树缓存，将 <paramref name="source"/> 的属性快速应用到 <paramref name="target"/>，
+    /// 同时排除通过 Lambda 表达式指定的属性（类型安全）。
+    /// </summary>
+    /// <typeparam name="T">引用类型的对象。</typeparam>
+    /// <param name="target">复制目标实例，不能为空。</param>
+    /// <param name="source">提供属性值的实例，不能为空。</param>
+    /// <param name="excludeSelectors">要排除的属性选择器，例如 x => x.Id, x => x.Name。</param>
+    /// <exception cref="ArgumentNullException">
+    /// 当 <paramref name="target"/> 或 <paramref name="source"/> 为 <c>null</c> 时抛出。
+    /// </exception>
+    public static void UpdatePropertiesHighQualityFrom<T>(this T target, T source, params Expression<Func<T, object?>>[] excludeSelectors)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(source);
+
+        if (ReferenceEquals(target, source))
+        {
+            return;
+        }
+
+        if (excludeSelectors == null || excludeSelectors.Length == 0)
+        {
+            PropertyCopier<T>.CopyAction(target, source);
+            return;
+        }
+
+        var excludeNames = excludeSelectors
+            .Select(GetPropertyName)
+            .Where(n => n != null)
+            .ToArray();
+
+        if (excludeNames.Length == 0)
+        {
+            PropertyCopier<T>.CopyAction(target, source);
+            return;
+        }
+
+        var excludeSet = new HashSet<string>(excludeNames!, StringComparer.Ordinal);
+        PropertyCopierWithExclusion<T>.GetCopyAction(excludeSet)(target, source);
+    }
+
+    private static string? GetPropertyName<T>(Expression<Func<T, object?>> selector)
+    {
+        var body = selector.Body;
+
+        // 处理值类型装箱的 Convert 表达式
+        if (body is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
+        {
+            body = unary.Operand;
+        }
+
+        return body is MemberExpression member ? member.Member.Name : null;
+    }
+
+    /// <summary>
     /// 高性能复制：排除 <see cref="ObservableCollection{T}"/> 与 <see cref="BindingList{T}"/> 等集合类型，仅同步可写属性。集合类型同步内部元素，避免丢失现有绑定关系
     /// </summary>
     /// <typeparam name="T">引用类型的对象。</typeparam>
@@ -88,6 +180,55 @@ public static class ObjectExtension
         public static readonly PropertyInfo[] WritableProperties = [.. typeof(T)
             .GetProperties()
             .Where(p => p.CanRead && p.CanWrite)];
+    }
+
+    private static class PropertyCopierWithExclusion<T>
+    {
+        private static readonly Dictionary<string, Action<T, T>> CachedActions = new();
+        private static readonly object LockObj = new();
+
+        public static Action<T, T> GetCopyAction(HashSet<string> excludeSet)
+        {
+            // 生成缓存 key（排序后拼接）
+            var key = string.Join("|", excludeSet.OrderBy(x => x, StringComparer.Ordinal));
+
+            lock (LockObj)
+            {
+                if (CachedActions.TryGetValue(key, out var cached))
+                {
+                    return cached;
+                }
+
+                var action = BuildCopyAction(excludeSet);
+                CachedActions[key] = action;
+                return action;
+            }
+        }
+
+        private static Action<T, T> BuildCopyAction(HashSet<string> excludeSet)
+        {
+            var target = Expression.Parameter(typeof(T), "target");
+            var source = Expression.Parameter(typeof(T), "source");
+
+            var assigns = typeof(T)
+                .GetProperties()
+                .Where(p => p.CanRead && p.CanWrite && !excludeSet.Contains(p.Name))
+                .Select(p =>
+                    Expression.Assign(
+                        Expression.Property(target, p),
+                        Expression.Property(source, p)
+                    )
+                )
+                .ToList();
+
+            if (assigns.Count == 0)
+            {
+                return (_, _) => { };
+            }
+
+            var body = Expression.Block(assigns);
+            return Expression.Lambda<Action<T, T>>(body, target, source).Compile();
+        }
     }
 
     private static class PropertyCopier<T>
