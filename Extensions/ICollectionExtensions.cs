@@ -1,4 +1,4 @@
-﻿namespace Extensions;
+namespace LyuExtensions.Extensions;
 
 public static class ICollectionExtensions
 {

@@ -1,6 +1,6 @@
-﻿using System.Threading;
+using System.Threading;
 
-namespace Extensions;
+namespace LyuExtensions.Extensions;
 
 public static class IEnumerableExtensions
 {

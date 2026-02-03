@@ -1,7 +1,7 @@
-﻿using MemoryPack;
+using MemoryPack;
 using System.Text.Json;
 
-namespace Extensions;
+namespace LyuExtensions.Extensions;
 
 public static class CloneExtension
 {

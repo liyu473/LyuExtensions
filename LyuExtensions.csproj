@@ -31,4 +31,8 @@
 	<ItemGroup>
 	  <PackageReference Include="MemoryPack" Version="1.21.4" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="nupkgs\" />
+	</ItemGroup>
 </Project>

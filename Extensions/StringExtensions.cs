@@ -1,8 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
 using System.Text;
 
-namespace Extensions;
+namespace LyuExtensions.Extensions;
 
 public static class StringExtensions
 {

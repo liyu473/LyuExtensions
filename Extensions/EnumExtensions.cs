@@ -1,7 +1,7 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Reflection;
 
-namespace Extensions;
+namespace LyuExtensions.Extensions;
 
 public static class EnumExtensions
 {

@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Extensions;
+namespace LyuExtensions.Extensions;
 
 /// <summary>
 /// 常见于Wpf Mvvm绑定
