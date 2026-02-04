@@ -32,6 +32,7 @@
 	  <PackageReference Include="MemoryPack" Version="1.21.4" />
 	  <PackageReference Include="Metalama.Extensions.DependencyInjection" Version="2026.0.16" />
 	  <PackageReference Include="Metalama.Framework.Sdk" Version="2026.0.16" />
+	  <PackageReference Include="Metalama.Patterns.Observability" Version="2026.0.16" />
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
 	  <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
 	  <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
