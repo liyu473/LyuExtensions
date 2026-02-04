@@ -3,9 +3,288 @@
 [![NuGet](https://img.shields.io/nuget/v/LyuExtensions.svg)](https://www.nuget.org/packages/LyuExtensions/)
 [![GitHub](https://img.shields.io/github/license/liyu473/LyuExtensions)](https://github.com/liyu473/LyuExtensions)
 
-一个聚焦日常开发场景的 .NET 扩展方法集，助力快速构建业务代码。
+一个聚焦日常开发场景的 .NET 扩展库，提供 AOP 特性和扩展方法，助力快速构建业务代码。
 
-## 扩展方法列表
+## 目录
+
+- [AOP 特性](#aop-特性)
+  - [TimingAttribute - 方法耗时统计](#timingattribute---方法耗时统计)
+  - [ServiceAttribute - 自动 DI 注册](#serviceattribute---自动-di-注册)
+- [扩展方法](#扩展方法)
+
+---
+
+## AOP 特性
+
+基于 Metalama 框架的 AOP 特性，通过简单的特性标注实现横切关注点。
+
+### TimingAttribute - 方法耗时统计
+
+自动统计方法执行耗时，支持日志记录和属性访问。
+
+#### 命名空间
+
+```csharp
+using LyuExtensions.Aspects;
+```
+
+#### 特性
+
+- 使用 `Stopwatch` 精确计时
+- 支持通过 `LastExecutionTime` 属性获取耗时
+- 可选的日志记录功能
+- 异常时也会记录耗时
+
+#### 使用示例
+
+**基础使用 - 记录日志：**
+
+```csharp
+[Timing]
+public async Task ProcessData()
+{
+    await Task.Delay(1000);
+    // 业务逻辑
+}
+
+// 日志输出: 方法执行完成: YourNamespace.YourClass.ProcessData, 耗时: 1002ms
+```
+
+**不记录日志，仅统计耗时：**
+
+```csharp
+[Timing(EnableLogging = false)]
+public void Calculate()
+{
+    // 复杂计算
+}
+
+public void CheckPerformance()
+{
+    Calculate();
+    
+    // 通过属性获取耗时
+    var elapsed = this.LastExecutionTime;
+    Console.WriteLine($"计算耗时: {elapsed}ms");
+}
+```
+
+**异常处理：**
+
+```csharp
+[Timing]
+public void RiskyOperation()
+{
+    throw new Exception("出错了");
+}
+
+// 即使抛出异常，也会记录耗时
+// 日志输出: 方法执行异常: YourNamespace.YourClass.RiskyOperation, 耗时: 5ms
+```
+
+#### 属性说明
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `EnableLogging` | `bool` | `true` | 是否记录日志 |
+| `LastExecutionTime` | `long` | - | 最后一次执行的耗时（毫秒），自动注入到类中 |
+
+---
+
+### ServiceAttribute - 自动 DI 注册
+
+通过特性标注自动注册服务到 DI 容器，告别繁琐的手动注册。
+
+#### 命名空间
+
+```csharp
+using LyuExtensions.Aspects;
+```
+
+#### 特性列表
+
+- `[Singleton]` - 注册为单例服务
+- `[Scoped]` - 注册为作用域服务
+- `[Transient]` - 注册为瞬态服务
+- `[HostedService]` - 注册为后台服务
+
+#### 使用示例
+
+**1. 标记服务类：**
+
+```csharp
+// 注册为单例
+[Singleton]
+public class CacheService
+{
+    public void Set(string key, object value) { }
+    public object Get(string key) { return null; }
+}
+
+// 注册为作用域服务
+[Scoped]
+public class OrderService
+{
+    public void CreateOrder() { }
+}
+
+// 注册为瞬态服务
+[Transient]
+public class EmailSender
+{
+    public void Send(string to, string subject) { }
+}
+
+// 注册为后台服务
+[HostedService]
+public class DataSyncService : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            // 后台任务逻辑
+            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+        }
+    }
+}
+```
+
+**2. 注册接口实现：**
+
+```csharp
+public interface IUserService
+{
+    void CreateUser(string name);
+}
+
+[Singleton(ServiceType = typeof(IUserService))]
+public class UserService : IUserService
+{
+    public void CreateUser(string name) { }
+}
+
+// 使用时注入接口
+public class UserController
+{
+    private readonly IUserService _userService;
+    
+    public UserController(IUserService userService)
+    {
+        _userService = userService;
+    }
+}
+```
+
+**3. 多实现场景 - 使用 ServiceKey：**
+
+```csharp
+public interface IPaymentProvider
+{
+    void Pay(decimal amount);
+}
+
+[Singleton(ServiceType = typeof(IPaymentProvider), ServiceKey = "Alipay")]
+public class AlipayProvider : IPaymentProvider
+{
+    public void Pay(decimal amount) { }
+}
+
+[Singleton(ServiceType = typeof(IPaymentProvider), ServiceKey = "WeChat")]
+public class WeChatPayProvider : IPaymentProvider
+{
+    public void Pay(decimal amount) { }
+}
+
+// 使用时通过 Key 注入
+public class PaymentService
+{
+    private readonly IPaymentProvider _alipay;
+    private readonly IPaymentProvider _wechat;
+    
+    public PaymentService(
+        [FromKeyedServices("Alipay")] IPaymentProvider alipay,
+        [FromKeyedServices("WeChat")] IPaymentProvider wechat)
+    {
+        _alipay = alipay;
+        _wechat = wechat;
+    }
+}
+```
+
+**4. 多实现场景 - 注入集合：**
+
+```csharp
+[Singleton(ServiceType = typeof(IPaymentProvider))]
+public class AlipayProvider : IPaymentProvider { }
+
+[Singleton(ServiceType = typeof(IPaymentProvider))]
+public class WeChatPayProvider : IPaymentProvider { }
+
+// 注入所有实现
+public class PaymentService
+{
+    private readonly IEnumerable<IPaymentProvider> _providers;
+    
+    public PaymentService(IEnumerable<IPaymentProvider> providers)
+    {
+        _providers = providers;
+    }
+    
+    public void PayWithAll(decimal amount)
+    {
+        foreach (var provider in _providers)
+        {
+            provider.Pay(amount);
+        }
+    }
+}
+```
+
+**5. 在 Program.cs 中注册：**
+
+```csharp
+using LyuExtensions.Aspects;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 扫描并注册当前程序集中所有带特性的服务
+builder.Services.RegisterServicesFromAttributes();
+
+// 或者扫描指定程序集
+builder.Services.RegisterServicesFromAttributes(typeof(UserService).Assembly);
+
+// 或者扫描多个程序集
+builder.Services.RegisterServicesFromAttributes(
+    typeof(UserService).Assembly,
+    typeof(OrderService).Assembly
+);
+
+var app = builder.Build();
+app.Run();
+```
+
+#### 属性说明
+
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `ServiceType` | `Type?` | `null` | 服务接口类型，为 null 时注册为自身类型 |
+| `ServiceKey` | `object?` | `null` | 服务键，用于区分同一接口的多个实现（.NET 8+） |
+
+#### 注意事项
+
+- 需要在启动时调用 `RegisterServicesFromAttributes()` 扫描并注册服务
+- `ServiceKey` 功能需要 .NET 8 或更高版本
+- `HostedService` 要求类实现 `IHostedService` 或继承 `BackgroundService`
+
+---
+
+## 扩展方法
+
+<details>
+<summary>点击展开查看所有扩展方法</summary>
+
+### 扩展方法列表
 
 - [HttpClient 扩展](#httpclient-扩展) - 简化 HTTP 请求
 - [对象克隆扩展](#对象克隆扩展) - 深拷贝对象
@@ -574,3 +853,18 @@ Console.WriteLine(str3.IsNullOrEmpty()); // false (包含空格)
 Console.WriteLine(str4.IsNullOrEmpty()); // false
 ```
 
+</details>
+
+---
+
+## 许可证
+
+本项目采用 MIT 许可证。详见 [LICENSE](https://github.com/liyu473/LyuExtensions/blob/main/LICENSE) 文件。
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 更新日志
+
+查看 [Releases](https://github.com/liyu473/LyuExtensions/releases) 了解版本更新历史。
