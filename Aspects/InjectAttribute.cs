@@ -43,7 +43,14 @@ public class InjectAttribute : FieldAspect
             .FirstOrDefault(c => !c.IsStatic);
 
         // 抑制 CS8618 警告（字段由构造函数注入，不会为 null）
-        builder.Diagnostics.Suppress(new SuppressionDefinition("CS8618"));
+        // 在字段级别抑制警告
+        builder.Diagnostics.Suppress(
+            new SuppressionDefinition("CS8618"),
+            field);
+
+        // 同时在声明类型级别抑制警告（针对构造函数）
+        builder.With(declaringType).Diagnostics.Suppress(
+            new SuppressionDefinition("CS8618"));
 
         if (constructor != null)
         {

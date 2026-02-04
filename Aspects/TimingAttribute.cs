@@ -13,7 +13,7 @@ namespace LyuExtensions.Aspects;
 public class TimingAttribute : OverrideMethodAspect
 {
     [IntroduceDependency]
-    private readonly ILogger? _logger;
+    private readonly ILogger? _timingLogger;
 
     /// <summary>
     /// 日志记录级别，默认为 Information (2)
@@ -75,9 +75,9 @@ public class TimingAttribute : OverrideMethodAspect
     private void LogCompletion([CompileTime] string typeName, [CompileTime] string methodName, long elapsedMs)
     {
         var logLevel = (LogLevel)LogLevelValue;
-        if (_logger?.IsEnabled(logLevel) == true)
+        if (_timingLogger?.IsEnabled(logLevel) == true)
         {
-            _logger.Log(logLevel, "方法执行完成: {TypeName}.{MethodName}, 耗时: {ElapsedMilliseconds}ms",
+            _timingLogger.Log(logLevel, "方法执行完成: {TypeName}.{MethodName}, 耗时: {ElapsedMilliseconds}ms",
                 typeName, methodName, elapsedMs);
         }
     }
@@ -85,9 +85,9 @@ public class TimingAttribute : OverrideMethodAspect
     [Template]
     private void LogException(Exception ex, [CompileTime] string typeName, [CompileTime] string methodName, long elapsedMs)
     {
-        if (_logger != null)
+        if (_timingLogger != null)
         {
-            _logger.LogError(ex, "方法执行异常: {TypeName}.{MethodName}, 耗时: {ElapsedMilliseconds}ms",
+            _timingLogger.LogError(ex, "方法执行异常: {TypeName}.{MethodName}, 耗时: {ElapsedMilliseconds}ms",
                 typeName, methodName, elapsedMs);
         }
     }
