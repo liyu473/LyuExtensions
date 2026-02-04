@@ -184,7 +184,7 @@ public static class ObjectExtension
 
     private static class PropertyCopierWithExclusion<T>
     {
-        private static readonly Dictionary<string, Action<T, T>> CachedActions = new();
+        private static readonly Dictionary<string, Action<T, T>> CachedActions = [];
         private static readonly object LockObj = new();
 
         public static Action<T, T> GetCopyAction(HashSet<string> excludeSet)

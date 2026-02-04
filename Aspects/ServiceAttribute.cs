@@ -14,12 +14,12 @@ public enum ServiceLifetimeType
 /// 自动注册服务到 DI 容器的基础特性
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public class ServiceAttribute : Attribute
+public class ServiceAttribute(ServiceLifetimeType lifetime = ServiceLifetimeType.Scoped) : Attribute
 {
     /// <summary>
     /// 服务生命周期
     /// </summary>
-    public ServiceLifetimeType Lifetime { get; }
+    public ServiceLifetimeType Lifetime { get; } = lifetime;
 
     /// <summary>
     /// 服务接口类型，如果为 null 则注册为自身类型
@@ -30,11 +30,6 @@ public class ServiceAttribute : Attribute
     /// 服务键（用于 Keyed Services，.NET 8+）
     /// </summary>
     public object? ServiceKey { get; set; }
-
-    public ServiceAttribute(ServiceLifetimeType lifetime = ServiceLifetimeType.Scoped)
-    {
-        Lifetime = lifetime;
-    }
 }
 
 /// <summary>
