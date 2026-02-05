@@ -8,8 +8,10 @@
 ## 目录
 
 - [AOP 特性](#aop-特性)
+  - [TryCatchAttribute - 自动异常处理](#trycatchattribute---自动异常处理)
   - [TimingAttribute - 方法耗时统计](#timingattribute---方法耗时统计)
   - [ServiceAttribute - 自动 DI 注册](#serviceattribute---自动-di-注册)
+  - [Observable - 自动属性通知](#observable---自动属性通知)
 - [扩展方法](#扩展方法)
 
 ---
@@ -18,26 +20,60 @@
 
 基于 Metalama 框架的 AOP 特性，通过简单的特性标注实现横切关注点。
 
-### TimingAttribute - 方法耗时统计
+### TryCatchAttribute - 自动异常处理
 
-自动统计方法执行耗时，支持日志记录和属性访问。
-
-#### 命名空间
-
-```csharp
-using LyuExtensions.Aspects;
-```
-
-#### 特性
-
-- 使用 `Stopwatch` 精确计时
-- 支持通过 `LastExecutionTime` 属性获取耗时
-- 可选的日志记录功能
-- 异常时也会记录耗时
+自动为方法添加 try-catch 包装，捕获异常、记录日志并返回默认值，无需手动编写异常处理代码。
 
 #### 使用示例
 
-**基础使用 - 记录日志：**
+**基础使用 - 自动捕获异常并记录日志：**
+
+```csharp
+[TryCatch]
+public string? GetUserName(int userId)
+{
+    // 如果出现异常，会自动记录日志并返回 null
+    return database.Query("SELECT name FROM users WHERE id = " + userId);
+}
+
+// 调用时不需要 try-catch
+var name = GetUserName(123); // 异常时返回 null
+```
+
+**指定默认返回值：**
+
+```csharp
+[TryCatch(DefaultValue = "Unknown")]
+public string GetUserName(int userId)
+{
+    // 如果出现异常，返回 "Unknown"
+    return database.Query("SELECT name FROM users WHERE id = " + userId);
+}
+
+[TryCatch(DefaultValue = 0)]
+public int CalculateTotal(List<int> numbers)
+{
+    // 如果出现异常，返回 0
+    return numbers.Sum();
+}
+
+[TryCatch(DefaultValue = false)]
+public bool ValidateData(string data)
+{
+    // 如果出现异常，返回 false
+    return data.Length > 0 && data.Contains("valid");
+}
+```
+
+---
+
+### TimingAttribute - 方法耗时统计
+
+自动统计方法执行耗时，支持自定义日志级别记录。
+
+#### 使用示例
+
+**基础使用 - 默认 Information 级别记录日志：**
 
 ```csharp
 [Timing]
@@ -47,25 +83,31 @@ public async Task ProcessData()
     // 业务逻辑
 }
 
-// 日志输出: 方法执行完成: YourNamespace.YourClass.ProcessData, 耗时: 1002ms
+// 日志输出 (Information): 方法执行完成: YourNamespace.YourClass.ProcessData, 耗时: 1002ms
 ```
 
-**不记录日志，仅统计耗时：**
+**自定义日志级别：**
 
 ```csharp
-[Timing(EnableLogging = false)]
+// 使用 Debug 级别记录
+[Timing(LogLevelValue = 1)]
 public void Calculate()
 {
     // 复杂计算
 }
 
-public void CheckPerformance()
+// 使用 Warning 级别记录
+[Timing(LogLevelValue = 3)]
+public void ImportantOperation()
 {
-    Calculate();
-    
-    // 通过属性获取耗时
-    var elapsed = this.LastExecutionTime;
-    Console.WriteLine($"计算耗时: {elapsed}ms");
+    // 重要操作
+}
+
+// 不记录日志 (None)
+[Timing(LogLevelValue = 6)]
+public void QuietOperation()
+{
+    // 不会记录任何日志
 }
 ```
 
@@ -78,16 +120,46 @@ public void RiskyOperation()
     throw new Exception("出错了");
 }
 
-// 即使抛出异常，也会记录耗时
+// 即使抛出异常，也会记录耗时（使用 Error 级别）
 // 日志输出: 方法执行异常: YourNamespace.YourClass.RiskyOperation, 耗时: 5ms
+// 异常会被重新抛出
 ```
+
+**异步方法支持：**
+
+```csharp
+[Timing]
+public async Task<List<User>> GetUsersAsync()
+{
+    return await httpClient.GetFromJsonAsync<List<User>>("api/users");
+}
+
+// 日志输出: 方法执行完成: YourNamespace.YourClass.GetUsersAsync, 耗时: 234ms
+```
+
+#### 日志级别说明
+
+| LogLevelValue | 日志级别 | 说明 |
+|---------------|----------|------|
+| 0 | Trace | 最详细的日志 |
+| 1 | Debug | 调试信息 |
+| 2 | Information | 常规信息（默认） |
+| 3 | Warning | 警告信息 |
+| 4 | Error | 错误信息 |
+| 5 | Critical | 严重错误 |
+| 6 | None | 不记录日志 |
 
 #### 属性说明
 
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `EnableLogging` | `bool` | `true` | 是否记录日志 |
-| `LastExecutionTime` | `long` | - | 最后一次执行的耗时（毫秒），自动注入到类中 |
+| `LogLevelValue` | `int` | `2` | 日志记录级别，默认为 Information |
+
+#### 注意事项
+
+- 异常发生时会使用 Error 级别记录日志，并重新抛出异常
+- 日志通过依赖注入的 `ILogger` 记录，确保已配置日志服务
+- 设置 `LogLevelValue = 6` 可以完全禁用日志记录
 
 ---
 
@@ -276,6 +348,304 @@ app.Run();
 - 需要在启动时调用 `RegisterServicesFromAttributes()` 扫描并注册服务
 - `ServiceKey` 功能需要 .NET 8 或更高版本
 - `HostedService` 要求类实现 `IHostedService` 或继承 `BackgroundService`
+
+---
+
+### Observable - 自动属性通知
+
+基于 Metalama.Patterns.Observability 的自动属性变更通知，为 WPF/MVVM 开发提供便捷的 `INotifyPropertyChanged` 实现。
+
+#### 命名空间
+
+```csharp
+using Metalama.Patterns.Observability;
+```
+
+#### 特性
+
+- 自动实现 `INotifyPropertyChanged` 接口
+- 自动为所有属性生成 `PropertyChanged` 事件
+- 支持依赖属性自动通知
+- 支持集合变更通知
+- 零样板代码，专注业务逻辑
+
+#### 使用示例
+
+**基础使用 - 自动属性通知：**
+
+```csharp
+using Metalama.Patterns.Observability;
+
+[Observable]
+public partial class UserViewModel
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+    public string Email { get; set; }
+}
+
+// 使用
+var viewModel = new UserViewModel();
+viewModel.PropertyChanged += (s, e) =>
+{
+    Console.WriteLine($"属性 {e.PropertyName} 已更改");
+};
+
+viewModel.Name = "张三"; // 自动触发 PropertyChanged 事件
+viewModel.Age = 25;      // 自动触发 PropertyChanged 事件
+```
+
+**计算属性 - 自动依赖追踪：**
+
+```csharp
+[Observable]
+public partial class PersonViewModel
+{
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    
+    // FullName 依赖于 FirstName 和 LastName
+    // 当 FirstName 或 LastName 改变时，FullName 也会自动通知
+    public string FullName => $"{FirstName} {LastName}";
+}
+
+// 使用
+var person = new PersonViewModel();
+person.PropertyChanged += (s, e) =>
+{
+    Console.WriteLine($"属性 {e.PropertyName} 已更改");
+};
+
+person.FirstName = "张";  // 触发 FirstName 和 FullName 的通知
+person.LastName = "三";   // 触发 LastName 和 FullName 的通知
+```
+
+**WPF 数据绑定示例：**
+
+```csharp
+[Observable]
+public partial class MainViewModel
+{
+    public string Title { get; set; } = "我的应用";
+    public int Counter { get; set; } = 0;
+    public bool IsEnabled { get; set; } = true;
+    
+    // 计算属性
+    public string StatusText => IsEnabled ? "已启用" : "已禁用";
+    public string CounterDisplay => $"计数: {Counter}";
+    
+    public void IncrementCounter()
+    {
+        Counter++; // 自动通知 Counter 和 CounterDisplay
+    }
+    
+    public void ToggleEnabled()
+    {
+        IsEnabled = !IsEnabled; // 自动通知 IsEnabled 和 StatusText
+    }
+}
+```
+
+**XAML 绑定：**
+
+```xml
+<Window x:Class="MyApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Text="{Binding Title}" FontSize="20"/>
+        <TextBlock Text="{Binding CounterDisplay}"/>
+        <TextBlock Text="{Binding StatusText}"/>
+        <Button Content="增加" Click="OnIncrementClick"/>
+        <Button Content="切换状态" Click="OnToggleClick"/>
+    </StackPanel>
+</Window>
+```
+
+**代码后置（Code-behind）：**
+
+```csharp
+public partial class MainWindow : Window
+{
+    private MainViewModel ViewModel => (MainViewModel)DataContext;
+    
+    private void OnIncrementClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel.IncrementCounter();
+    }
+    
+    private void OnToggleClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ToggleEnabled();
+    }
+}
+```
+
+**集合属性：**
+
+```csharp
+using System.Collections.ObjectModel;
+
+[Observable]
+public partial class TodoListViewModel
+{
+    public ObservableCollection<TodoItem> Items { get; set; } = new();
+    
+    // 计算属性 - 自动追踪集合变化
+    public int TotalCount => Items.Count;
+    public int CompletedCount => Items.Count(x => x.IsCompleted);
+    public string Summary => $"已完成 {CompletedCount}/{TotalCount}";
+    
+    public void AddItem(string title)
+    {
+        Items.Add(new TodoItem { Title = title });
+        // Items 的变化会自动触发 TotalCount、CompletedCount 和 Summary 的通知
+    }
+}
+
+[Observable]
+public partial class TodoItem
+{
+    public string Title { get; set; }
+    public bool IsCompleted { get; set; }
+}
+```
+
+**复杂场景 - 跨对象依赖：**
+
+```csharp
+[Observable]
+public partial class OrderViewModel
+{
+    public decimal Price { get; set; }
+    public int Quantity { get; set; }
+    public decimal DiscountRate { get; set; }
+    
+    // 多级计算属性
+    public decimal Subtotal => Price * Quantity;
+    public decimal DiscountAmount => Subtotal * DiscountRate;
+    public decimal Total => Subtotal - DiscountAmount;
+    
+    // 当 Price、Quantity 或 DiscountRate 改变时
+    // Subtotal、DiscountAmount 和 Total 都会自动通知
+}
+```
+
+#### 实际应用场景
+
+```csharp
+// 登录表单 ViewModel
+[Observable]
+public partial class LoginViewModel
+{
+    public string Username { get; set; } = "";
+    public string Password { get; set; } = "";
+    
+    // 自动验证
+    public bool IsValid => !string.IsNullOrWhiteSpace(Username) 
+                        && !string.IsNullOrWhiteSpace(Password);
+    
+    public string ValidationMessage => IsValid 
+        ? "可以登录" 
+        : "请输入用户名和密码";
+}
+
+// 设置页面 ViewModel
+[Observable]
+public partial class SettingsViewModel
+{
+    public bool IsDarkMode { get; set; }
+    public int FontSize { get; set; } = 14;
+    public string Language { get; set; } = "zh-CN";
+    
+    public string ThemeText => IsDarkMode ? "深色模式" : "浅色模式";
+    public string FontSizeDisplay => $"{FontSize}px";
+}
+
+// 数据列表 ViewModel
+[Observable]
+public partial class UserListViewModel
+{
+    public ObservableCollection<User> Users { get; set; } = new();
+    public string SearchText { get; set; } = "";
+    
+    public IEnumerable<User> FilteredUsers => 
+        string.IsNullOrWhiteSpace(SearchText)
+            ? Users
+            : Users.Where(u => u.Name.Contains(SearchText, 
+                StringComparison.OrdinalIgnoreCase));
+    
+    public int FilteredCount => FilteredUsers.Count();
+}
+```
+
+#### 注意事项
+
+- 类必须标记为 `partial`，因为 Metalama 会生成额外的代码
+- 自动实现 `INotifyPropertyChanged` 接口，无需手动实现
+- 计算属性的依赖会自动追踪，无需手动指定
+- 适用于 WPF、WinForms、Avalonia 等 MVVM 框架
+- 需要安装 `Metalama.Patterns.Observability` NuGet 包
+
+#### 与传统方式对比
+
+**传统方式（需要大量样板代码）：**
+
+```csharp
+public class UserViewModel : INotifyPropertyChanged
+{
+    private string _name;
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            if (_name != value)
+            {
+                _name = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(DisplayName));
+            }
+        }
+    }
+    
+    private int _age;
+    public int Age
+    {
+        get => _age;
+        set
+        {
+            if (_age != value)
+            {
+                _age = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(DisplayName));
+            }
+        }
+    }
+    
+    public string DisplayName => $"{Name} ({Age}岁)";
+    
+    public event PropertyChangedEventHandler PropertyChanged;
+    
+    protected void OnPropertyChanged([CallerMemberName] string name = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+}
+```
+
+**使用 Observable（简洁优雅）：**
+
+```csharp
+[Observable]
+public partial class UserViewModel
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+    public string DisplayName => $"{Name} ({Age}岁)";
+}
+```
 
 ---
 
