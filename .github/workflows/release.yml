@@ -36,10 +36,10 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore
 
-      - name: Pack Extensions
-        run: dotnet pack Extensions.csproj -c Release -o ./nupkgs
+      - name: Pack LyuExtensions
+        run: dotnet pack LyuExtensions.csproj -c Release -o ./nupkgs
 
-      - name: Push Extensions to NuGet
+      - name: Push LyuExtensions to NuGet
         if: ${{ !inputs.dry_run }}
         run: dotnet nuget push ./nupkgs/LyuExtensions.*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 

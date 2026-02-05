@@ -14,6 +14,7 @@
   - [TimingAttribute - 方法耗时统计](#timingattribute---方法耗时统计)
   - [ServiceAttribute - 自动 DI 注册](#serviceattribute---自动-di-注册)
   - [Observable - 自动属性通知](#observable---自动属性通知)
+  - [Inject - 自动注入](#inject---自动注入)
 - [扩展方法](#扩展方法)
 
 ---
@@ -317,7 +318,7 @@ app.Run();
 
 ---
 
-### Inject- 自动注入
+### Inject - 自动注入
 
 ~~~C#
  [Inject]
@@ -806,5 +807,4 @@ Console.WriteLine(str4.IsNullOrEmpty()); // false
 </details>
 
 ---
-
 
