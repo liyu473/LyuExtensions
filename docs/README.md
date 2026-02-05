@@ -656,7 +656,6 @@ public partial class UserViewModel
 
 ### 扩展方法列表
 
-- [HttpClient 扩展](#httpclient-扩展) - 简化 HTTP 请求
 - [对象克隆扩展](#对象克隆扩展) - 深拷贝对象
 - [Double 扩展](#double-扩展) - 数值格式化
 - [枚举扩展](#枚举扩展) - 获取枚举描述
@@ -669,23 +668,11 @@ public partial class UserViewModel
 
 ---
 
-## HttpClient 扩展
-
-简化 HttpClient 的 POST 请求操作，自动处理序列化和错误回调。
-
----
-
 ## 对象克隆扩展
 
 提供两种深拷贝方式：基于 MemoryPack 的二进制高性能克隆和基于 JSON 的通用克隆。
 
 实测：对于普通的类 ZClone 比JClone快了10倍以上
-
-### 命名空间
-
-```csharp
-using Extensions;
-```
 
 ### 方法
 
@@ -740,13 +727,6 @@ Console.WriteLine(cloned.Name);   // 输出: 李四
 
 获取枚举值的 `[Description]` 特性描述文本。
 
-### 命名空间
-
-```csharp
-using Extensions;
-using System.ComponentModel;
-```
-
 ### 方法
 
 #### GetEnumDescription
@@ -781,12 +761,6 @@ Console.WriteLine(status2.GetEnumDescription()); // 输出: Completed
 ## 环境变量扩展
 
 简化 `Environment.SpecialFolder` 的路径获取。
-
-### 命名空间
-
-```csharp
-using Extensions;
-```
 
 ### 方法
 
@@ -886,12 +860,6 @@ await urls.ForEachAsync(
 ## JSON 扩展
 
 提供简单的 JSON 序列化扩展方法，基于 `System.Text.Json`。
-
-### 命名空间
-
-```csharp
-using Extensions;
-```
 
 ### 默认配置
 
@@ -1116,73 +1084,6 @@ if (configJson.HasJsonPath("database.credentials.username"))
 
 ---
 
-## 对象扩展
-
-提供对象属性复制功能，特别适用于 WPF MVVM 绑定场景。
-
-### 方法
-
-#### UpdatePropertiesFrom
-
-基础属性复制，将源对象的可读写属性复制到目标对象。
-
-#### UpdatePropertiesHighQualityFrom
-
-高性能属性复制，使用表达式树缓存提升性能。
-
-**示例：**
-```csharp
-// 适用于频繁调用的场景
-for (int i = 0; i < 10000; i++)
-{
-    target.UpdatePropertiesHighQualityFrom(source);
-}
-```
-
-#### UpdatePropertiesHighQualityExcludeGenericTypeFrom
-
-高性能属性复制，特殊处理 `ObservableCollection<T>` 和 `BindingList<T>`。
-
-**特性：**
-
-- 对于集合类型，同步元素而非替换整个集合
-- 保持 WPF/MVVM 的数据绑定关系
-
-**示例：**
-```csharp
-using System.Collections.ObjectModel;
-
-public class ViewModel
-{
-    public string Title { get; set; }
-    public ObservableCollection<string> Items { get; set; }
-}
-
-var source = new ViewModel
-{
-    Title = "新标题",
-    Items = new ObservableCollection<string> { "项目1", "项目2" }
-};
-
-var target = new ViewModel
-{
-    Title = "旧标题",
-    Items = new ObservableCollection<string> { "旧项目" }
-};
-
-// 绑定到 UI
-// DataContext = target;
-
-// 更新属性（保持 Items 集合实例不变）
-target.UpdatePropertiesHighQualityExcludeGenericTypeFrom(source);
-
-Console.WriteLine(target.Title); // 输出: 新标题
-// target.Items 集合实例未改变，但内容更新为 ["项目1", "项目2"]
-// UI 绑定仍然有效
-```
-
----
-
 ## 字符串扩展
 
 提供字符串判空扩展方法。
@@ -1227,14 +1128,4 @@ Console.WriteLine(str4.IsNullOrEmpty()); // false
 
 ---
 
-## 许可证
 
-本项目采用 MIT 许可证。详见 [LICENSE](https://github.com/liyu473/LyuExtensions/blob/main/LICENSE) 文件。
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
-## 更新日志
-
-查看 [Releases](https://github.com/liyu473/LyuExtensions/releases) 了解版本更新历史。
