@@ -9,7 +9,7 @@
 		<PackageId>LyuExtensions</PackageId>
 		<Version>1.1.8</Version>
 		<Authors>Liyu</Authors>
-		<Description>一些简单的拓展方法集合</Description>
+		<Description>一些简单的拓展方法集合和C#特性/切面集合</Description>
 		<PackageTags>tools;helper;extensions</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 
