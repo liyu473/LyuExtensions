@@ -1,5 +1,3 @@
-using System.Threading;
-
 namespace LyuExtensions.Extensions;
 
 public static class IEnumerableExtensions

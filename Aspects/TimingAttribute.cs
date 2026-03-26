@@ -1,28 +1,65 @@
 using Metalama.Extensions.DependencyInjection;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace LyuExtensions.Aspects;
 
 /// <summary>
-/// 方法耗时记录特性。
+/// Method execution time logging aspect.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
 public class TimingAttribute : OverrideMethodAspect
 {
-    [IntroduceDependency]
-    private readonly ILogger? _timingLogger;
+    [CompileTime]
+    private IFieldOrProperty? _loggerMember;
 
     /// <summary>
-    /// 日志记录级别，默认为 Information (2)
-    /// 0=Trace, 1=Debug, 2=Information, 3=Warning, 4=Error, 5=Critical, 6=None
+    /// Log level value.
+    /// 0=Trace, 1=Debug, 2=Information, 3=Warning, 4=Error, 5=Critical, 6=None.
     /// </summary>
-    public int LogLevelValue { get; set; } = 2; // Information
+    public int LogLevelValue { get; set; } = 2;
 
-    /// <summary>
-    /// 同步方法的耗时记录
-    /// </summary>
+    public override void BuildAspect(IAspectBuilder<IMethod> builder)
+    {
+        _loggerMember = FindExistingLoggerMember(builder.Target.DeclaringType);
+
+        if (_loggerMember == null)
+        {
+            var dependencyResult = builder.With(builder.Target.DeclaringType).IntroduceDependency(
+                typeof(ILogger),
+                new DependencyOptions
+                {
+                    MemberName = "_logger",
+                    MemberKind = DeclarationKind.Field
+                });
+
+            if (dependencyResult.Outcome != AdviceOutcome.Error)
+            {
+                _loggerMember = dependencyResult.Declaration;
+            }
+        }
+
+        base.BuildAspect(builder);
+    }
+
+    [CompileTime]
+    private static IFieldOrProperty? FindExistingLoggerMember(INamedType targetType)
+    {
+        return targetType.FieldsAndProperties
+            .Where(member => !member.IsStatic)
+            .FirstOrDefault(member => IsLoggerType(member.Type));
+    }
+
+    [CompileTime]
+    private static bool IsLoggerType(IType type)
+    {
+        var typeName = type.ToDisplayString();
+        return typeName.Contains("Microsoft.Extensions.Logging.ILogger");
+    }
+
     public override dynamic? OverrideMethod()
     {
         var typeName = meta.Target.Type.ToDisplayString();
@@ -34,20 +71,17 @@ public class TimingAttribute : OverrideMethodAspect
             var result = meta.Proceed();
             stopwatch.Stop();
 
-            LogCompletion(typeName, methodName, stopwatch.ElapsedMilliseconds);
+            LogCompletion(_loggerMember, typeName, methodName, stopwatch.ElapsedMilliseconds);
             return result;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            LogException(ex, typeName, methodName, stopwatch.ElapsedMilliseconds);
+            LogException(_loggerMember, ex, typeName, methodName, stopwatch.ElapsedMilliseconds);
             throw;
         }
     }
 
-    /// <summary>
-    /// 异步方法的耗时记录（等待 Task 完成后再计算耗时）
-    /// </summary>
     public override async Task<dynamic?> OverrideAsyncMethod()
     {
         var typeName = meta.Target.Type.ToDisplayString();
@@ -59,35 +93,56 @@ public class TimingAttribute : OverrideMethodAspect
             var result = await meta.ProceedAsync();
             stopwatch.Stop();
 
-            LogCompletion(typeName, methodName, stopwatch.ElapsedMilliseconds);
+            LogCompletion(_loggerMember, typeName, methodName, stopwatch.ElapsedMilliseconds);
             return result;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            LogException(ex, typeName, methodName, stopwatch.ElapsedMilliseconds);
+            LogException(_loggerMember, ex, typeName, methodName, stopwatch.ElapsedMilliseconds);
             throw;
         }
     }
 
     [Template]
-    private void LogCompletion([CompileTime] string typeName, [CompileTime] string methodName, long elapsedMs)
+    private void LogCompletion([CompileTime] IFieldOrProperty? loggerMember, [CompileTime] string typeName, [CompileTime] string methodName, long elapsedMs)
     {
-        var logLevel = (LogLevel)LogLevelValue;
-        if (_timingLogger?.IsEnabled(logLevel) == true)
+        if (loggerMember == null)
         {
-            _timingLogger.Log(logLevel, "方法执行完成: {TypeName}.{MethodName}, 耗时: {ElapsedMilliseconds}ms",
-                typeName, methodName, elapsedMs);
+            return;
+        }
+
+        var logger = (ILogger?)loggerMember.Value;
+        var logLevel = (LogLevel)LogLevelValue;
+
+        if (logger?.IsEnabled(logLevel) == true)
+        {
+            logger.Log(
+                logLevel,
+                "方法执行完成: {TypeName}.{MethodName}, 耗时: {ElapsedMilliseconds}ms",
+                typeName,
+                methodName,
+                elapsedMs);
         }
     }
 
     [Template]
-    private void LogException(Exception ex, [CompileTime] string typeName, [CompileTime] string methodName, long elapsedMs)
+    private void LogException([CompileTime] IFieldOrProperty? loggerMember, Exception ex, [CompileTime] string typeName, [CompileTime] string methodName, long elapsedMs)
     {
-        if (_timingLogger != null)
+        if (loggerMember == null)
         {
-            _timingLogger.LogError(ex, "方法执行异常: {TypeName}.{MethodName}, 耗时: {ElapsedMilliseconds}ms",
-                typeName, methodName, elapsedMs);
+            return;
+        }
+
+        var logger = (ILogger?)loggerMember.Value;
+        if (logger != null)
+        {
+            logger.LogError(
+                ex,
+                "方法执行异常: {TypeName}.{MethodName}, 耗时: {ElapsedMilliseconds}ms",
+                typeName,
+                methodName,
+                elapsedMs);
         }
     }
 }

@@ -1,33 +1,68 @@
 using Metalama.Extensions.DependencyInjection;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
 using Microsoft.Extensions.Logging;
 
 namespace LyuExtensions.Aspects;
 
 /// <summary>
-/// 自动为方法添加 try-catch 异常处理的特性。
-/// 默认行为：捕获异常、记录日志、吞掉异常并返回默认值。
+/// Adds try-catch handling to a method and optionally logs exceptions.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
 public class TryCatchAttribute : OverrideMethodAspect
 {
-    [IntroduceDependency]
-    private readonly ILogger? _exceptionLogger;
+    [CompileTime]
+    private IFieldOrProperty? _loggerMember;
 
     /// <summary>
-    /// 是否记录异常日志，默认为 true
+    /// Whether exception logs should be written.
     /// </summary>
     public bool LogException { get; set; } = true;
 
     /// <summary>
-    /// 异常发生时的默认返回值
-    /// 对于引用类型默认为 null，对于值类型默认为 default(T)
+    /// Default return value when exception is caught.
     /// </summary>
     public object? DefaultValue { get; set; }
 
-    /// <summary>
-    /// 同步方法的 try-catch 包装
-    /// </summary>
+    public override void BuildAspect(IAspectBuilder<IMethod> builder)
+    {
+        _loggerMember = FindExistingLoggerMember(builder.Target.DeclaringType);
+
+        if (_loggerMember == null)
+        {
+            var dependencyResult = builder.With(builder.Target.DeclaringType).IntroduceDependency(
+                typeof(ILogger),
+                new DependencyOptions
+                {
+                    MemberName = "_logger",
+                    MemberKind = DeclarationKind.Field
+                });
+
+            if (dependencyResult.Outcome != AdviceOutcome.Error)
+            {
+                _loggerMember = dependencyResult.Declaration;
+            }
+        }
+
+        base.BuildAspect(builder);
+    }
+
+    [CompileTime]
+    private static IFieldOrProperty? FindExistingLoggerMember(INamedType targetType)
+    {
+        return targetType.FieldsAndProperties
+            .Where(member => !member.IsStatic)
+            .FirstOrDefault(member => IsLoggerType(member.Type));
+    }
+
+    [CompileTime]
+    private static bool IsLoggerType(IType type)
+    {
+        var typeName = type.ToDisplayString();
+        return typeName.Contains("Microsoft.Extensions.Logging.ILogger");
+    }
+
     public override dynamic? OverrideMethod()
     {
         var typeName = meta.Target.Type.ToDisplayString();
@@ -39,14 +74,11 @@ public class TryCatchAttribute : OverrideMethodAspect
         }
         catch (Exception ex)
         {
-            HandleException(ex, typeName, methodName);
+            HandleException(_loggerMember, ex, typeName, methodName);
             return DefaultValue;
         }
     }
 
-    /// <summary>
-    /// 异步方法的 try-catch 包装
-    /// </summary>
     public override async Task<dynamic?> OverrideAsyncMethod()
     {
         var typeName = meta.Target.Type.ToDisplayString();
@@ -58,18 +90,29 @@ public class TryCatchAttribute : OverrideMethodAspect
         }
         catch (Exception ex)
         {
-            HandleException(ex, typeName, methodName);
+            HandleException(_loggerMember, ex, typeName, methodName);
             return DefaultValue;
         }
     }
 
     [Template]
-    private void HandleException(Exception ex, [CompileTime] string typeName, [CompileTime] string methodName)
+    private void HandleException([CompileTime] IFieldOrProperty? loggerMember, Exception ex, [CompileTime] string typeName, [CompileTime] string methodName)
     {
-        if (LogException && _exceptionLogger != null)
+        if (!LogException || loggerMember == null)
         {
-            _exceptionLogger.LogError(ex, "[TryCatch] 捕获异常: {TypeName}.{MethodName}, 异常类型: {ExceptionType}, 消息: {Message}",
-                typeName, methodName, ex.GetType().Name, ex.Message);
+            return;
+        }
+
+        var logger = (ILogger?)loggerMember.Value;
+        if (logger != null)
+        {
+            logger.LogError(
+                ex,
+                "[TryCatch] 捕获异常: {TypeName}.{MethodName}, 异常类型: {ExceptionType}, 消息: {Message}",
+                typeName,
+                methodName,
+                ex.GetType().Name,
+                ex.Message);
         }
     }
 }
