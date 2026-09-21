@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <LyuExtensionsEnableZLinqDropIn Condition="'$(LyuExtensionsEnableZLinqDropIn)' == ''">true</LyuExtensionsEnableZLinqDropIn>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(LyuExtensionsEnableZLinqDropIn)' == 'true'">
+    <Analyzer Include="$(MSBuildThisFileDirectory)..\analyzers\dotnet\cs\ZLinq.DropInGenerator.dll" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\contentFiles\cs\any\LyuExtensions.ZLinq.g.cs" />
+  </ItemGroup>
+</Project>

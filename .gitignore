@@ -11,6 +11,7 @@ obj/
 packages/
 *.nupkg
 TestResults/
+generated/
 
 # JetBrains IDE
 .idea/

@@ -7,7 +7,7 @@
 
 		<!-- NuGet 包信息 -->
 		<PackageId>LyuExtensions</PackageId>
-		<Version>1.1.12</Version>
+		<Version>1.1.13</Version>
 		<Authors>Liyu</Authors>
 		<Description>一些简单的拓展方法集合和C#特性/切面集合</Description>
 		<PackageTags>tools;helper;extensions</PackageTags>
@@ -22,6 +22,8 @@
 		<!-- 打包时自动生成 nupkg -->
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageOutputPath>./nupkgs</PackageOutputPath>
+		<!-- 引用 LyuExtensions 的项目默认由 buildTransitive 启用 ZLinq Drop-in。 -->
+		<LyuExtensionsEnableZLinqDropIn Condition="'$(LyuExtensionsEnableZLinqDropIn)' == ''">true</LyuExtensionsEnableZLinqDropIn>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -36,9 +38,16 @@
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
 	  <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.12" />
 	  <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+	  <PackageReference Include="ZLinq" Version="1.5.6" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Remove="generated\**" />
+	  <None Include="$(NuGetPackageRoot)zlinq.dropingenerator\1.5.6\analyzers\dotnet\cs\ZLinq.DropInGenerator.dll"
+	        Pack="true"
+	        PackagePath="analyzers\dotnet\cs\ZLinq.DropInGenerator.dll" />
+	  <None Include="buildTransitive\LyuExtensions.props" Pack="true" PackagePath="buildTransitive\LyuExtensions.props" />
+	  <None Include="contentFiles\cs\any\LyuExtensions.ZLinq.g.cs" Pack="true" PackagePath="contentFiles\cs\any\LyuExtensions.ZLinq.g.cs" />
 	  <Folder Include="Aspects\" />
 	  <Folder Include="nupkgs\" />
 	</ItemGroup>

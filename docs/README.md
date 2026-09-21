@@ -16,6 +16,23 @@
   - [Observable - 自动属性通知](#observable---自动属性通知)
   - [Inject - 自动注入](#inject---自动注入)
 - [扩展方法](#扩展方法)
+- [ZLinq 无感加速](#zlinq-无感加速)
+
+---
+
+## ZLinq 无感加速
+
+安装 `LyuExtensions` 后，引用项目默认会通过 NuGet 的 `buildTransitive` 自动启用 ZLinq Drop-in。业务代码继续使用普通 LINQ 写法即可，例如 `items.Where(...).Select(...)`，不需要手动调用 `.AsValueEnumerable()`。
+
+该功能由 C# 源生成器在编译期完成，不能在程序运行时重新绑定已经编译的 LINQ 调用。需要切换时，请在项目文件中设置编译属性并重新编译：
+
+```xml
+<PropertyGroup>
+  <LyuExtensionsEnableZLinqDropIn>false</LyuExtensionsEnableZLinqDropIn>
+</PropertyGroup>
+```
+
+启用时，目标项目需要直接或间接引用 `ZLinq`（该包已作为 `LyuExtensions` 的依赖提供）。如果某段代码必须使用标准 LINQ，可显式调用 `System.Linq.Enumerable` 的方法，避免与 Drop-in 扩展产生歧义。
 
 ---
 
