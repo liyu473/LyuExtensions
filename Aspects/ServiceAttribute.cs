@@ -71,4 +71,17 @@ public class TransientAttribute : ServiceAttribute
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public class HostedServiceAttribute : Attribute
 {
+    public HostedServiceAttribute()
+    {
+    }
+
+    public HostedServiceAttribute(int order)
+    {
+        Order = order;
+    }
+
+    /// <summary>
+    /// 启动顺序，数值越小越先注册和启动。
+    /// </summary>
+    public int Order { get; set; }
 }

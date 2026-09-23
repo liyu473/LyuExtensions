@@ -21,15 +21,24 @@ public static class ServiceRegistrar
             assemblies = [Assembly.GetCallingAssembly()];
         }
 
-        foreach (var assembly in assemblies)
-        {
-            var types = assembly.GetTypes().Where(t => t.IsClass && !t.IsAbstract);
+        var types = assemblies
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => type.IsClass && !type.IsAbstract)
+            .ToArray();
 
-            foreach (var type in types)
-            {
-                RegisterServiceAttribute(services, type);
-                RegisterHostedServiceAttribute(services, type);
-            }
+        foreach (var type in types)
+        {
+            RegisterServiceAttribute(services, type);
+        }
+
+        foreach (var type in types
+            .Select(type => (Type: type, Attribute: type.GetCustomAttribute<HostedServiceAttribute>()))
+            .Where(item => item.Attribute != null && typeof(IHostedService).IsAssignableFrom(item.Type))
+            .OrderBy(item => item.Attribute!.Order)
+            .ThenBy(item => item.Type.FullName ?? item.Type.Name, StringComparer.Ordinal)
+            .Select(item => item.Type))
+        {
+            RegisterHostedServiceAttribute(services, type);
         }
 
         return services;

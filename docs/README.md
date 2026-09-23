@@ -221,8 +221,8 @@ public class EmailSender
     public void Send(string to, string subject) { }
 }
 
-// 注册为后台服务
-[HostedService]
+// 注册为后台服务，Order 越小越先启动
+[HostedService(Order = 10)]
 public class DataSyncService : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
