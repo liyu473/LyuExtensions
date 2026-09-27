@@ -7,7 +7,7 @@
 
 		<!-- NuGet 包信息 -->
 		<PackageId>LyuExtensions</PackageId>
-		<Version>1.1.15</Version>
+		<Version>1.1.16</Version>
 		<Authors>Liyu</Authors>
 		<Description>一些简单的拓展方法集合和C#特性/切面集合</Description>
 		<PackageTags>tools;helper;extensions</PackageTags>
@@ -30,6 +30,7 @@
 
 	<ItemGroup>
 	  <PackageReference Include="MemoryPack" Version="1.21.4" />
+	  <PackageReference Include="MessagePipe" Version="1.8.2" />
 	  <PackageReference Include="Metalama.Extensions.DependencyInjection" Version="2026.1.28" />
 	  <PackageReference Include="Metalama.Framework.Sdk" Version="2026.1.28" />
 	  <PackageReference Include="Metalama.Patterns.Observability" Version="2026.1.28" />
